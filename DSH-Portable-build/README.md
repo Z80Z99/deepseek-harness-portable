@@ -115,6 +115,23 @@ node scripts/build-single.js [dshPin] [appVersion]
 - `dshPin`：首次安装时写入 package.json 的依赖版本（默认 `0.1.0-rc.7`）
 - `appVersion`：显示在横幅/帮助里的 launcher 版本（默认同 dshPin）
 
+## pnpm（部署时的可选项）
+
+首次安装完成后，若系统未检测到 pnpm，会询问是否安装（默认安装
+`pnpm@10`）。**为什么需要 pnpm**：
+
+1. **DSH 的插件系统依赖它**：`dsh plugin` 命令把插件安装转发给 pnpm，
+   没有 pnpm 时直接报错（`'pnpm' is not recognized`），第三方插件
+   （如 dsh-web-ui 全家桶：任务看板 / 皮肤中心 / 梁神模式 / Git 图谱等）
+   装不了。
+2. **目录结构要求**：DSH 要求 `profiles\node_modules` 是 pnpm 管理的
+   **符号链接树**；用 npm 安装的真实目录会被 DSH 拒绝/重建，插件无法
+   加载。这是 pnpm 独有的能力。
+3. **版本选择 pnpm@10**：pnpm 11 在 Node 24 下存在 libuv 崩溃
+   （`UV_HANDLE_CLOSING`，实测下载依赖时进程崩溃），pnpm@10 稳定。
+
+跳过安装也没关系：以后需要插件时手动运行 `npm install -g pnpm` 即可。
+
 运行中的实例升级程序本体用 `--update`，不必重新构建 bat。
 
 ## 整文件夹搬家

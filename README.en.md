@@ -50,6 +50,27 @@ node scripts/build-single.js [dshPin] [appVersion]
 
 See [DSH-Portable-build/README.md](DSH-Portable-build/README.md) for details.
 
+## pnpm (optional, asked during first install)
+
+After the first install, if pnpm is not detected, the launcher asks whether to
+install it (default: install `pnpm@10`). **Why pnpm is needed**:
+
+1. **DSH's plugin system depends on it**: the `dsh plugin` command forwards
+   plugin installation to pnpm. Without pnpm it fails immediately
+   (`'pnpm' is not recognized`), so third-party plugins (e.g. the
+   dsh-web-ui family: task board / skin center / liangshen mode / git graph)
+   cannot be installed.
+2. **Directory structure requirement**: DSH requires `profiles\node_modules`
+   to be a **symlinked tree** managed by pnpm; real directories installed by
+   npm are rejected/rebuild by DSH and plugins fail to load. This is a pnpm
+   capability.
+3. **Why pnpm@10**: pnpm 11 crashes under Node 24 (libuv assertion
+   `UV_HANDLE_CLOSING` during dependency download, observed in practice);
+   pnpm@10 is stable.
+
+Skipping is fine: run `npm install -g pnpm` manually whenever you need
+plugins later.
+
 ## Security
 
 - **`dsh-home\` contains your API key and session history** — it is excluded via `.gitignore` and is never uploaded.

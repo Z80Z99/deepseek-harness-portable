@@ -1027,6 +1027,48 @@ if ($needInstall) {
     Self-Clean
     exit 3
   }
+
+  # ---- [可选] pnpm: DSH 插件管理依赖 ----
+  # 为什么需要 pnpm:
+  #   1. DSH 的插件系统(dsh plugin 命令)把插件安装转发给 pnpm,没有 pnpm
+  #      时直接报错("'pnpm' is not recognized")。
+  #   2. DSH 要求 profiles\node_modules 是 pnpm 管理的符号链接结构,
+  #      npm 安装的真实目录会被 DSH 拒绝/重建,插件无法加载。
+  #   3. 第三方插件全家桶(如 dsh-web-ui: 任务看板/皮肤中心/梁神模式等)
+  #      都通过该机制挂载。
+  # 版本说明: 安装 pnpm@10——pnpm 11 在 Node 24 下存在 libuv 崩溃
+  # (UV_HANDLE_CLOSING, 实测下载依赖时进程崩溃)。
+  $pnpmCmd = Get-Command pnpm -ErrorAction SilentlyContinue
+  if (-not $pnpmCmd) {
+    if (Is-Interactive) {
+      Ln ''
+      Ln '  [可选] DSH 插件管理需要 pnpm(dsh plugin 依赖它安装第三方插件,'
+      Ln '  如 dsh-web-ui 全家桶: 任务看板 / 皮肤中心 / Git 图谱等)。'
+      Ln '  当前未检测到 pnpm。'
+      Ln ''
+      Ln '  [1] 安装 pnpm(推荐, 约几秒)'
+      Ln '  [2] 跳过(以后需要时手动运行: npm install -g pnpm)'
+      Ln ''
+      $ans = ''
+      try { $ans = Read-Host '  请选择 (1/2, 默认 1)' } catch { $ans = '1' }
+      if ($ans -ne '2') {
+        Ln ''
+        Ln '  正在安装 pnpm@10(避开 pnpm 11 在 Node 24 下的崩溃问题)...'
+        & $NpmCmd install -g pnpm@10 --no-audit --no-fund
+        if ($LASTEXITCODE -eq 0) {
+          Ln '  pnpm 安装完成。'
+        } else {
+          Ln '  pnpm 安装失败,可稍后手动安装。'
+        }
+        Ln ''
+      }
+    } else {
+      Ln ''
+      Ln '  提示: DSH 插件管理需要 pnpm(dsh plugin 依赖它)。'
+      Ln '  需要时手动运行: npm install -g pnpm'
+      Ln ''
+    }
+  }
 }
 
 # ---------------- home phase ----------------
