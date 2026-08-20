@@ -1,0 +1,10 @@
+{
+  "name": "dsh-portable-build",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Build project that packs DeepSeek Harness (@deepseek-ai/dsh) into a single-file DeepSeek-Harness.bat",
+  "scripts": {
+    "build": "node scripts/build-single.js"
+  }
+}
