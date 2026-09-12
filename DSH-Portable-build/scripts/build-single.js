@@ -18,7 +18,9 @@ const BOOTSTRAP = path.join(projectRoot, 'deploy', 'bootstrap.ps1')
 const TRAY_ICON = path.join(projectRoot, 'assets', 'dsh-tray.png')
 const OUTPUT = path.join(projectRoot, '..', 'DeepSeek-Harness.bat')
 
-const DSH_PIN = process.argv[2] || '0.1.0-rc.7'
+// 默认 'latest': 全新安装时由 bootstrap 现场解析 registry 的最新版
+// 并锁成基线,这样无需每次发版都重新构建 bat。
+const DSH_PIN = process.argv[2] || 'latest'
 const APP_VERSION = process.argv[3] || DSH_PIN
 
 function main() {

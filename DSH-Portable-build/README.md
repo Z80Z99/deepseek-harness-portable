@@ -109,11 +109,16 @@ nodejs\                     ← （可选）便携 Node.js：node.exe + npm.cmd
 
 ```powershell
 node scripts/build-single.js [dshPin] [appVersion]
-# 例：node scripts/build-single.js 0.1.0-rc.8
+# 默认: node scripts/build-single.js        → dshPin=latest
+# 锁定: node scripts/build-single.js 0.1.5-rc.1 0.1.5-rc.1
 ```
 
-- `dshPin`：首次安装时写入 package.json 的依赖版本（默认 `0.1.0-rc.7`）
-- `appVersion`：显示在横幅/帮助里的 launcher 版本（默认同 dshPin）
+- `dshPin`：首次安装 / `--reinstall` 时写入 `dsh-app\package.json` 的依赖版本，
+  **默认 `latest`** —— 安装时由 bootstrap 现场查询 registry 的 `latest` 并解析成
+  具体版本号（如 `0.1.5-rc.1`）锁成基线，因此**不必每次上游发版都重新构建 bat**。
+  查询失败（离线/镜像不通）则把 `latest` 字面量交给 npm 自行解析。
+  传具体版本号（如 `0.1.0-rc.8`）可改成锁死在某版本线（`^0.1.0-rc.8`）。
+- `appVersion`：显示在横幅/帮助/`--status` 里的 launcher 版本（默认同 dshPin）
 
 ## pnpm（部署时的可选项）
 
@@ -150,8 +155,9 @@ node scripts/build-single.js [dshPin] [appVersion]
   超时，失败静默跳过）。发现新版本会提示"发现新版本 X（当前 Y）"，交互
   环境按 Y 立即升级、回车跳过；非交互环境自动跳过。
 - **手动升级**：`DeepSeek-Harness.bat --update` 直接升到 npm 最新版。
-- **首次安装/--reinstall**：安装 `^<锁定版本>`（如 `^0.1.0-rc.7`），只会装
-  同主版本号内最新；跨大版本需 `--update`。
+- **首次安装/--reinstall**：默认安装 registry 上的**最新版**（`latest` 现场解析成
+  具体版本号，如 `0.1.5-rc.1`，并锁成基线）；除非构建时显式传了版本号，那才按
+  `^<锁定版本>` 只装同主版本号内最新、跨大版本需 `--update`。
 - 版本比较支持 `-rc.N` 预发布标签（`0.1.0-rc.9` < `0.1.0-rc.10` < `0.1.0`）。
 
 ## 已知注意点

@@ -9,7 +9,7 @@ param(
   [string]$Root = '.',
   [string]$AppVersion = '0.0.0',
   [string]$AppBuilt = '',
-  [string]$DshPin = '0.1.0-rc.7',
+  [string]$DshPin = 'latest',
   [string]$UserArgs = ''
 )
 
@@ -796,7 +796,7 @@ if ($flags.ContainsKey('status')) {
   Ln '  --------------------------------------------------'
   Ln ('  bat 文件   : ' + (Join-Path $Root 'DeepSeek-Harness.bat'))
   Ln ('  版本       : ' + $AppVersion + '  (构建于 ' + $AppBuilt + ')')
-  Ln ('  dsh 锁定版 : ' + $DshPin)
+  Ln ('  dsh 安装版 : ' + $(if ($DshPin -eq 'latest') { 'latest(安装时取 npm 最新版)' } else { $DshPin }))
   Ln ('  程序目录   : ' + $AppDir)
   if (Test-Path $BinJs) { Ln '               已安装(正常)' } else { Ln '               未安装' }
   Ln ('  数据目录   : ' + $HomeDir)
@@ -995,7 +995,23 @@ if ($needInstall) {
   if ($updateMode -and (Test-Path $pkgJson)) {
     H1 ('正在把 @deepseek-ai/dsh 升级到最新版(当前锁定 ' + $DshPin + ')')
   } else {
-    $depVersion = $DshPin
+    # 全新安装一律取 registry 上的最新版: DshPin='latest' 时现场解析成
+  # 具体版本号(如 0.1.5-rc.1)写进 package.json,把最新版锁成基线 —— 之后
+  # 上游再发新版,启动时的版本检查才会提示更新。解析失败(离线/镜像不通)
+  # 回退到 DshPin 字面量,由 npm 自己解析。
+  $depVersion = $DshPin
+  if ($depVersion -eq 'latest') {
+    $regForLatest = 'https://registry.npmjs.org/'
+    if ($registry) { $regForLatest = [string]$registry }
+    Ln '  正在查询最新版本...'
+    $resolvedVer = Get-DshLatestVersion $regForLatest
+    if ($resolvedVer) {
+      $depVersion = $resolvedVer
+    } else {
+      Ln '  查询最新版失败(网络/镜像不可达),交由 npm 解析 latest。'
+    }
+    Ln ''
+  }
     if ($updateMode) { $depVersion = 'latest' }
     $content = "{`r`n  `"name`": `"dsh-app`",`r`n  `"private`": true,`r`n  `"dependencies`": { `"@deepseek-ai/dsh`": `"^$depVersion`" }`r`n}`r`n"
     # WriteAllText = UTF-8 WITHOUT BOM (PS 5.1 Set-Content -Encoding UTF8 writes

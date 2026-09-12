@@ -7,7 +7,7 @@ Pack [DeepSeek Harness](https://www.npmjs.com/package/@deepseek-ai/dsh) (npm pac
 Download `DeepSeek-Harness.bat`, drop it into any folder, and double-click:
 
 1. Automatically detects / downloads **Node.js** (can install a portable copy into `nodejs\` next to the bat — fully self-contained, no system changes)
-2. Speed-tests npm mirrors and installs dependencies into `dsh-app\`
+2. Speed-tests npm mirrors and installs the **latest** `@deepseek-ai/dsh` into `dsh-app\`
 3. Creates a portable data directory `dsh-home\` (config, sessions, credentials all local)
 4. Picks a random free port, starts the web UI, and opens the browser once the service is **actually ready**
 5. Closing the window moves it to the **system tray** (whale icon); right-click the tray icon to exit the service
@@ -19,7 +19,7 @@ Download `DeepSeek-Harness.bat`, drop it into any folder, and double-click:
 - npm mirror speed test (official / npmmirror / Huawei Cloud / USTC)
 - Random free port allocation with persistence; duplicate-instance detection
 - Closing the console window automatically minimizes to the **system tray**; exit is managed from the tray menu
-- Startup version check with one-key upgrade (`--update`)
+- Fresh installs (including `--reinstall`) default to the **latest version on npm**; a newer release is then reported on startup and can be upgraded with one key (`--update`)
 - Entire folder is movable — sessions/config follow the folder (relative path memory)
 
 ## Layout After Running
