@@ -1,0 +1,4 @@
+# 单文件 bat 产物必须保持 CRLF(LF 会破坏 cmd 的 goto 标签扫描,见 build-single.js),
+# 禁止 git 对其做任何行尾规范化,否则从仓库检出/下载的 bat 可能无法启动。
+*.bat -text
+*.png -text

@@ -78,6 +78,37 @@ function Test-PortBusy([string]$p) {
   try { return [bool](Get-NetTCPConnection -State Listen -LocalPort ([int]$p) -ErrorAction SilentlyContinue) } catch { return $false }
 }
 
+# HTTP 就绪探测: 端口监听 ≠ 服务可访问(dsh 监听端口后仍需加载配置档/插件),
+# 收到任意 HTTP 响应(含 4xx/5xx)才算真正在服务。Proxy 置空避免系统代理劫持本机探测。
+function Test-HttpReady([string]$u) {
+  try {
+    $req = [System.Net.HttpWebRequest]::Create($u)
+    $req.Method = 'HEAD'
+    $req.Timeout = 1500
+    $req.AllowAutoRedirect = $false
+    $req.Proxy = $null
+    $resp = $req.GetResponse()
+    $resp.Close()
+    return $true
+  } catch [System.Net.WebException] {
+    return ($null -ne $_.Exception.Response)
+  } catch {
+    return $false
+  }
+}
+
+# 打开浏览器前等待服务真正可访问(最多 30 秒),避免抢跑打开"无法连接/未连接"页。
+function Open-WhenReady([string]$u) {
+  if (-not $flags.ContainsKey('no-open')) {
+    $waited = 0.0
+    while (-not (Test-HttpReady $u) -and $waited -lt 30.0) {
+      Start-Sleep -Milliseconds 500
+      $waited += 0.5
+    }
+    try { Start-Process $u | Out-Null } catch { }
+  }
+}
+
 function Get-RandomPort {
   # 与参考项目一致: 10000-60000 范围内随机找可用端口
   for ($i = 0; $i -lt 30; $i++) {
@@ -1298,9 +1329,7 @@ if ($instances.Count -gt 0) {
     if (-not $pick) { $pick = $instances[0] }
     Ln ('  打开已有实例: ' + $pick.url)
     Ln ''
-    if (-not $flags.ContainsKey('no-open')) {
-      try { Start-Process $pick.url | Out-Null } catch { }
-    }
+    Open-WhenReady $pick.url
     if (Is-Interactive) { try { Read-Host '  按回车关闭本窗口' | Out-Null } catch { } }
     Self-Clean
     exit 0
@@ -1312,9 +1341,7 @@ if ($instances.Count -gt 0) {
     Ln ('  检测到已有实例在 ' + $pick.url + ' 运行,直接使用该实例,不再重复启动。')
     Ln '  如需停止服务: DeepSeek-Harness.bat --stop'
     Ln ''
-    if (-not $flags.ContainsKey('no-open')) {
-      try { Start-Process $pick.url | Out-Null } catch { }
-    }
+    Open-WhenReady $pick.url
     Self-Clean
     exit 0
   }
@@ -1370,13 +1397,14 @@ try {
   [IO.File]::WriteAllText((Join-Path $Root '.dsh-server.pid'), $pidJson)
 } catch { }
 
-# 轮询等待服务就绪(最长 60 秒)
+# 轮询等待服务就绪(最长 60 秒): 以 HTTP 可访问为准,端口监听只作兜底
 $ready = $false
 for ($i = 0; $i -lt 120; $i++) {
   if ($dshProc.HasExited) { break }
-  if (Test-PortBusy $port) { $ready = $true; break }
+  if (Test-HttpReady $url) { $ready = $true; break }
   Start-Sleep -Milliseconds 500
 }
+if (-not $ready -and (Test-PortBusy $port)) { $ready = $true }
 
 if ($ready) {
   # 服务就绪后才显示启动信息
