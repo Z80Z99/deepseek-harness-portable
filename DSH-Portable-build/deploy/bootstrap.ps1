@@ -1381,8 +1381,12 @@ Ln ''
 # 后台启动 dsh: 独立隐藏控制台(与参考项目 detached 等价,关闭本窗口服务继续运行),
 # stdout 丢弃(不再显示 "dsh web: http://..." 等), stderr 写入 dsh-error.log 便于排错
 $errLog = Join-Path $Root 'dsh-error.log'
+$webArgs = @('"' + $BinJs + '"', 'web', '--port', $port)
+# 新版 dsh 默认自开浏览器(openBrowser 默认 true,打开的是带认证握手的 URL),
+# --no-open 必须透传给 dsh,否则启动器的 --no-open 形同虚设
+if ($flags.ContainsKey('no-open')) { $webArgs += '--no-open' }
 try {
-  $dshProc = Start-Process -FilePath $NodeExe -ArgumentList @('"' + $BinJs + '"', 'web', '--port', $port) -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput 'NUL' -RedirectStandardError $errLog -PassThru
+  $dshProc = Start-Process -FilePath $NodeExe -ArgumentList $webArgs -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput 'NUL' -RedirectStandardError $errLog -PassThru
 } catch {
   Ln ''
   Ln ('  启动 dsh 失败: ' + $_.Exception.Message)
@@ -1419,10 +1423,9 @@ if ($ready) {
   Ln '  退出服务: 托盘图标右键 → "退出服务"'
   Ln ''
 
-  # 服务就绪后才打开浏览器(不再出现"无法连接"页)
-  if (-not $flags.ContainsKey('no-open')) {
-    try { Start-Process $url | Out-Null } catch { }
-  }
+  # 浏览器由 dsh 就绪后自行打开(openBrowser 默认开,URL 带认证握手),
+  # 启动器不再重复开页——此前"启动一次开两个页面"即启动器+dsh 各开一个。
+  # HTTP 就绪轮询保留: 就绪后才打启动横幅,并保证 URL 变量对后续逻辑可用。
 
   # 交互模式: 启动隐藏托盘守护 B(独立控制台,与窗口解耦)。
   # 用户关闭窗口 → 启动器 A 退出 → B 检测到 A 退出 → 创建托盘,由托盘管理退出。
